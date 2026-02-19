@@ -1,4 +1,4 @@
-import { fetchAllFeeds } from './rss';
+import { fetchAllFeeds, enrichWithImages } from './rss';
 import { loadPostedUrls, savePostedUrls, filterNewArticles } from './urlStore';
 import { sortByRelevance } from './filter';
 import { summarize } from './summarizer';
@@ -52,18 +52,22 @@ async function main(): Promise<void> {
     return;
   }
 
+  // OGP画像を取得してArticleに付与
+  console.info('[main] OGP画像を取得しています...');
+  const articlesWithImages = await enrichWithImages(ranked);
+
   // 要約生成 → Slack投稿
   const postedThisRun: string[] = [];
 
-  for (let i = 0; i < ranked.length; i++) {
-    const article = ranked[i];
-    console.info(`[main] 処理中 (${i + 1}/${ranked.length}): ${article.title}`);
+  for (let i = 0; i < articlesWithImages.length; i++) {
+    const article = articlesWithImages[i];
+    console.info(`[main] 処理中 (${i + 1}/${articlesWithImages.length}): ${article.title}`);
 
     const summary = await summarize(article.title, article.description);
     await postMessage(article, summary);
     postedThisRun.push(article.url);
 
-    if (i < ranked.length - 1) {
+    if (i < articlesWithImages.length - 1) {
       await wait(POST_INTERVAL_MS);
     }
   }

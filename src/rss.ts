@@ -129,6 +129,33 @@ export function parseFeed(xml: string): Article[] {
   return articles;
 }
 
+async function fetchOgpImage(articleUrl: string): Promise<string | undefined> {
+  try {
+    const html = await fetchFeed(articleUrl);
+    // <meta property="og:image" content="..."> の両パターンに対応
+    const match =
+      html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+    return match ? match[1] : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function enrichWithImages(articles: Article[]): Promise<Article[]> {
+  const results = await Promise.allSettled(
+    articles.map(async (article) => {
+      if (article.imageUrl) return article; // RSSに画像があればそのまま使用
+      const imageUrl = await fetchOgpImage(article.url);
+      return { ...article, imageUrl };
+    })
+  );
+
+  return results.map((result, i) =>
+    result.status === 'fulfilled' ? result.value : articles[i]
+  );
+}
+
 export async function fetchAllFeeds(): Promise<Article[]> {
   const results = await Promise.allSettled(
     FEED_URLS.map(async (url) => {
