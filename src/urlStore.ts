@@ -8,8 +8,10 @@ const MAX_URLS = 1_000;
 export function loadPostedUrls(): string[] {
   try {
     const raw = fs.readFileSync(STORE_PATH, 'utf8');
-    const parsed = JSON.parse(raw) as { urls: string[] };
-    return Array.isArray(parsed.urls) ? parsed.urls : [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+    if (Array.isArray(parsed.urls)) return parsed.urls;
+    return [];
   } catch {
     // ファイルが存在しない・パース失敗時は空配列として扱う
     return [];
