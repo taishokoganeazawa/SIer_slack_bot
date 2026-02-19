@@ -12,13 +12,35 @@ function getWebhookUrl(): string {
   return url;
 }
 
-function wait(ms: number): Promise<void> {
+export function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function buildPayload(article: Article, summary: string): string {
-  const text = `*【${article.title}】*\n${summary}\n<${article.url}>`;
-  return JSON.stringify({ text });
+  const mainText = `*【${article.title}】*\n${summary}\n<${article.url}|記事を読む>`;
+
+  // サムネイルがある場合はBlock Kit（画像付き）、ない場合はシンプルテキスト
+  if (article.imageUrl) {
+    const payload = {
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: mainText,
+          },
+          accessory: {
+            type: 'image',
+            image_url: article.imageUrl,
+            alt_text: article.title,
+          },
+        },
+      ],
+    };
+    return JSON.stringify(payload);
+  }
+
+  return JSON.stringify({ text: mainText });
 }
 
 function sendRequest(webhookUrl: string, payload: string): Promise<void> {
@@ -54,12 +76,10 @@ export async function postMessage(article: Article, summary: string): Promise<vo
     const webhookUrl = getWebhookUrl();
     const payload = buildPayload(article, summary);
     await sendRequest(webhookUrl, payload);
-    console.info(`[slack] 投稿完了: ${article.title}`);
+    console.info(`[slack] 投稿完了: ${article.title}${article.imageUrl ? ' [画像あり]' : ''}`);
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));
     console.error(`[slack] 投稿失敗（スキップ）: ${article.title}`);
     console.error(`  エラー: ${error.message}`);
   }
 }
-
-export { wait };

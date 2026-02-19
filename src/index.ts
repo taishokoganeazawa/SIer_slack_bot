@@ -1,5 +1,6 @@
 import { fetchAllFeeds } from './rss';
 import { loadPostedUrls, savePostedUrls, filterNewArticles } from './urlStore';
+import { sortByRelevance } from './filter';
 import { summarize } from './summarizer';
 import { postMessage, wait } from './slack';
 
@@ -32,7 +33,6 @@ function validateEnv(): void {
 async function main(): Promise<void> {
   console.info('[main] ニュースBot 起動');
 
-  // 環境変数の検証
   validateEnv();
   console.info('[main] 環境変数: OK');
 
@@ -41,12 +41,13 @@ async function main(): Promise<void> {
   const allArticles = await fetchAllFeeds();
   console.info(`[main] 取得記事数（全フィード合計）: ${allArticles.length}件`);
 
-  // 未投稿記事の抽出
+  // 未投稿記事の抽出 → 関連度順にソート → 上位5件を選出
   const postedUrls = loadPostedUrls();
-  const newArticles = filterNewArticles(allArticles, postedUrls).slice(0, MAX_ARTICLES);
-  console.info(`[main] 未投稿記事（最大${MAX_ARTICLES}件）: ${newArticles.length}件`);
+  const newArticles = filterNewArticles(allArticles, postedUrls);
+  const ranked = sortByRelevance(newArticles).slice(0, MAX_ARTICLES);
+  console.info(`[main] 未投稿記事（関連度順・最大${MAX_ARTICLES}件）: ${ranked.length}件`);
 
-  if (newArticles.length === 0) {
+  if (ranked.length === 0) {
     console.info('[main] 投稿対象なし。処理を終了します。');
     return;
   }
@@ -54,16 +55,15 @@ async function main(): Promise<void> {
   // 要約生成 → Slack投稿
   const postedThisRun: string[] = [];
 
-  for (let i = 0; i < newArticles.length; i++) {
-    const article = newArticles[i];
-    console.info(`[main] 処理中 (${i + 1}/${newArticles.length}): ${article.title}`);
+  for (let i = 0; i < ranked.length; i++) {
+    const article = ranked[i];
+    console.info(`[main] 処理中 (${i + 1}/${ranked.length}): ${article.title}`);
 
     const summary = await summarize(article.title, article.description);
     await postMessage(article, summary);
     postedThisRun.push(article.url);
 
-    // 最後の記事以外はウェイトを挟む
-    if (i < newArticles.length - 1) {
+    if (i < ranked.length - 1) {
       await wait(POST_INTERVAL_MS);
     }
   }

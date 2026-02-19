@@ -5,12 +5,13 @@ export interface Article {
   title: string;
   url: string;
   description: string;
+  imageUrl?: string;
 }
 
 const FEED_URLS = [
-  'https://www.nhk.or.jp/rss/news/cat6.xml',            // NHK ビジネスニュース（Reuters代替）
-  'https://rss.itmedia.co.jp/rss/2.0/itmediabiz.xml',   // ITmedia ビジネス
-  'https://japan.zdnet.com/rss/news/index.rdf',          // ZDNet Japan
+  'https://www.nhk.or.jp/rss/news/cat6.xml',                  // NHK ビジネスニュース
+  'https://rss.itmedia.co.jp/rss/2.0/ait.xml',                // ITmedia AI＋IT
+  'https://rss.itmedia.co.jp/rss/2.0/enterprise.xml',         // ITmedia エンタープライズ
 ];
 
 const TIMEOUT_MS = 15_000;
@@ -42,7 +43,6 @@ function fetchFeed(url: string, redirectCount = 0): Promise<string> {
     };
 
     const req = client.get(options, (res) => {
-      // リダイレクト追従（相対URLも絶対URLに変換）
       if (
         res.statusCode &&
         res.statusCode >= 300 &&
@@ -93,6 +93,22 @@ function extractTagContent(xml: string, tag: string): string {
   return decodeHtmlEntities(match[1].trim());
 }
 
+function extractImageUrl(item: string): string | undefined {
+  // <media:thumbnail url="..."/>
+  const mediaThumbnail = item.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i);
+  if (mediaThumbnail) return mediaThumbnail[1];
+
+  // <media:content url="..." type="image/..."/>
+  const mediaContent = item.match(/<media:content[^>]+url=["']([^"']+)["'][^>]+type=["']image[^"']*["']/i);
+  if (mediaContent) return mediaContent[1];
+
+  // <enclosure url="..." type="image/..."/>
+  const enclosure = item.match(/<enclosure[^>]+url=["']([^"']+)["'][^>]+type=["']image[^"']*["']/i);
+  if (enclosure) return enclosure[1];
+
+  return undefined;
+}
+
 export function parseFeed(xml: string): Article[] {
   const articles: Article[] = [];
   const itemRegex = /<item[\s>]([\s\S]*?)<\/item>/gi;
@@ -103,9 +119,10 @@ export function parseFeed(xml: string): Article[] {
     const title = extractTagContent(item, 'title');
     const url = extractTagContent(item, 'link') || extractTagContent(item, 'guid');
     const description = extractTagContent(item, 'description');
+    const imageUrl = extractImageUrl(item);
 
     if (title && url) {
-      articles.push({ title, url, description });
+      articles.push({ title, url, description, imageUrl });
     }
   }
 
