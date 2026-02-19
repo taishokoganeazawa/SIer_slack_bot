@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const MODEL = 'gemini-1.5-flash';
+const MODEL = 'gemini-2.0-flash';
 const FALLBACK_TEXT = '（要約を取得できませんでした）';
 
 let client: GoogleGenerativeAI | null = null;
