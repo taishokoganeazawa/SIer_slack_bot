@@ -1,10 +1,10 @@
-# 004 AI要約生成モジュール（Google Gemini API）
+# 004 AI要約生成モジュール（Groq API）
 
 ## 概要
 
-Google Gemini API（`gemini-1.5-flash`）を呼び出し、
+Groq API（`llama-3.3-70b-versatile`）を呼び出し、
 記事タイトルと description をもとに日本語要約（2〜3文）を生成する。
-無料枠：1日1,500リクエスト / 1分15リクエスト。
+無料枠：14,400リクエスト/日。
 
 ---
 
@@ -12,7 +12,8 @@ Google Gemini API（`gemini-1.5-flash`）を呼び出し、
 
 | 項目 | 内容 |
 |---|---|
-| 使用モデル | `gemini-1.5-flash` |
+| 使用サービス | Groq API |
+| 使用モデル | `llama-3.3-70b-versatile` |
 | 要約言語 | 日本語 |
 | 要約長 | 2〜3文 |
 | 入力 | 記事タイトル + RSSの description |
@@ -24,10 +25,10 @@ Google Gemini API（`gemini-1.5-flash`）を呼び出し、
 ## TODO
 
 - [×] `src/summarizer.ts` を作成する
-- [×] `@google/generative-ai` を `dependencies` に追加する
+- [×] `groq-sdk` を `dependencies` に追加する
 - [×] `summarize(title: string, description: string): Promise<string>` を実装する
 - [×] プロンプトを設計する（タイトルと概要を渡し「2〜3文で日本語要約してください」と指示）
-- [×] `GEMINI_API_KEY` を環境変数から取得し、未設定時は起動時エラーとする
+- [×] `GROQ_API_KEY` を環境変数から取得し、未設定時は起動時エラーとする
 - [×] API呼び出し失敗時は「要約を取得できませんでした」等のフォールバックテキストを返す
 - [×] エラー内容をログ出力する（`message` と `stack` を含める）
 
@@ -37,4 +38,4 @@ Google Gemini API（`gemini-1.5-flash`）を呼び出し、
 
 - 正常時に日本語の2〜3文の要約が返る
 - API失敗時にフォールバックテキストが返り、例外がスローされない
-- `GEMINI_API_KEY` が未設定の場合、起動時に分かりやすいエラーメッセージが出る
+- `GROQ_API_KEY` が未設定の場合、起動時に分かりやすいエラーメッセージが出る
