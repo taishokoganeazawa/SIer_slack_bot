@@ -8,13 +8,22 @@ export interface Article {
 }
 
 const FEED_URLS = [
-  'https://feeds.reuters.com/reuters/JPBusinessNews',
-  'https://rss.itmedia.co.jp/rss/2.0/itmediabiz.xml',
-  'https://japan.zdnet.com/rss/news/index.rdf',
+  'https://www.nhk.or.jp/rss/news/cat6.xml',            // NHK ビジネスニュース（Reuters代替）
+  'https://rss.itmedia.co.jp/rss/2.0/itmediabiz.xml',   // ITmedia ビジネス
+  'https://japan.zdnet.com/rss/news/index.rdf',          // ZDNet Japan
 ];
 
 const TIMEOUT_MS = 15_000;
 const MAX_REDIRECTS = 5;
+const USER_AGENT = 'Mozilla/5.0 (compatible; SIerSlackBot/1.0)';
+
+function resolveLocation(base: string, location: string): string {
+  if (location.startsWith('http://') || location.startsWith('https://')) {
+    return location;
+  }
+  const baseUrl = new URL(base);
+  return new URL(location, baseUrl.origin).toString();
+}
 
 function fetchFeed(url: string, redirectCount = 0): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -24,9 +33,16 @@ function fetchFeed(url: string, redirectCount = 0): Promise<string> {
     }
 
     const client = url.startsWith('https') ? https : http;
+    const parsedUrl = new URL(url);
 
-    const req = client.get(url, (res) => {
-      // リダイレクト追従
+    const options = {
+      hostname: parsedUrl.hostname,
+      path: parsedUrl.pathname + parsedUrl.search,
+      headers: { 'User-Agent': USER_AGENT },
+    };
+
+    const req = client.get(options, (res) => {
+      // リダイレクト追従（相対URLも絶対URLに変換）
       if (
         res.statusCode &&
         res.statusCode >= 300 &&
@@ -34,7 +50,8 @@ function fetchFeed(url: string, redirectCount = 0): Promise<string> {
         res.headers.location
       ) {
         res.resume();
-        fetchFeed(res.headers.location, redirectCount + 1).then(resolve).catch(reject);
+        const nextUrl = resolveLocation(url, res.headers.location);
+        fetchFeed(nextUrl, redirectCount + 1).then(resolve).catch(reject);
         return;
       }
 
