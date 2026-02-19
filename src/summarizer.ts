@@ -1,38 +1,42 @@
-import { GoogleGenAI } from '@google/genai';
+import Groq from 'groq-sdk';
 
-const MODEL = 'gemini-2.0-flash-lite';
+const MODEL = 'llama-3.3-70b-versatile';
 const FALLBACK_TEXT = '（要約を取得できませんでした）';
 
-let client: GoogleGenAI | null = null;
+let client: Groq | null = null;
 
-function getClient(): GoogleGenAI {
-  const apiKey = process.env.GEMINI_API_KEY;
+function getClient(): Groq {
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     throw new Error(
-      '[summarizer] 環境変数 GEMINI_API_KEY が設定されていません。' +
+      '[summarizer] 環境変数 GROQ_API_KEY が設定されていません。' +
       'GitHub Secrets または .env ファイルを確認してください。'
     );
   }
   if (!client) {
-    client = new GoogleGenAI({ apiKey });
+    client = new Groq({ apiKey });
   }
   return client;
 }
 
 export async function summarize(title: string, description: string): Promise<string> {
   try {
-    const prompt =
-      `以下のニュース記事を日本語で2〜3文に要約してください。` +
-      `要約のみを出力し、前置きや補足は不要です。\n\n` +
-      `タイトル: ${title}\n` +
-      `概要: ${description}`;
-
-    const response = await getClient().models.generateContent({
+    const completion = await getClient().chat.completions.create({
       model: MODEL,
-      contents: prompt,
+      messages: [
+        {
+          role: 'user',
+          content:
+            `以下のニュース記事を日本語で2〜3文に要約してください。` +
+            `要約のみを出力し、前置きや補足は不要です。\n\n` +
+            `タイトル: ${title}\n` +
+            `概要: ${description}`,
+        },
+      ],
+      max_tokens: 300,
     });
 
-    const text = response.text?.trim();
+    const text = completion.choices[0]?.message?.content?.trim();
     return text || FALLBACK_TEXT;
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));

@@ -20,7 +20,7 @@ process.on('unhandledRejection', (reason) => {
 function validateEnv(): void {
   const missing: string[] = [];
   if (!process.env.SLACK_WEBHOOK_URL) missing.push('SLACK_WEBHOOK_URL');
-  if (!process.env.GEMINI_API_KEY) missing.push('GEMINI_API_KEY');
+  if (!process.env.GROQ_API_KEY) missing.push('GROQ_API_KEY');
   if (missing.length > 0) {
     throw new Error(
       `[main] 必須の環境変数が設定されていません: ${missing.join(', ')}\n` +

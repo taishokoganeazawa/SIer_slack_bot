@@ -30,7 +30,7 @@ jobs:
       - name: Bot を実行
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: node dist/index.js
 
       - name: posted_urls.json をコミット・プッシュ
