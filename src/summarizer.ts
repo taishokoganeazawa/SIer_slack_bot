@@ -1,20 +1,20 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
-const MODEL = 'gemini-1.5-flash-8b';
+const MODEL = 'gemini-2.0-flash-lite';
 const FALLBACK_TEXT = '（要約を取得できませんでした）';
 
-let client: GoogleGenerativeAI | null = null;
+let client: GoogleGenAI | null = null;
 
-function getClient(): GoogleGenerativeAI {
+function getClient(): GoogleGenAI {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      '[summarizer] 環境変数 GEMINI_API_KEY が設定されていません。' +
+      'GitHub Secrets または .env ファイルを確認してください。'
+    );
+  }
   if (!client) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error(
-        '[summarizer] 環境変数 GEMINI_API_KEY が設定されていません。' +
-        'GitHub Secrets または .env ファイルを確認してください。'
-      );
-    }
-    client = new GoogleGenerativeAI(apiKey);
+    client = new GoogleGenAI({ apiKey });
   }
   return client;
 }
@@ -27,10 +27,12 @@ export async function summarize(title: string, description: string): Promise<str
       `タイトル: ${title}\n` +
       `概要: ${description}`;
 
-    const model = getClient().getGenerativeModel({ model: MODEL });
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().trim();
+    const response = await getClient().models.generateContent({
+      model: MODEL,
+      contents: prompt,
+    });
 
+    const text = response.text?.trim();
     return text || FALLBACK_TEXT;
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));
