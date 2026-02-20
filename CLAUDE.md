@@ -26,6 +26,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `docs/005_slack-webhook.md` | Slack Incoming Webhook投稿モジュール |
 | `docs/006_main-orchestration.md` | メイン処理（オーケストレーション） |
 | `docs/007_github-actions.md` | GitHub Actionsワークフロー設定 |
+| `docs/008_testing.md` | テスト環境（Jest・Excel出力） |
 
 ---
 
@@ -159,9 +160,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │   ├── filter.ts              # キーワードスコアリング・関連度ソート
 │   ├── urlStore.ts            # 投稿済みURL管理（読み込み・保存・重複チェック）
 │   ├── summarizer.ts          # Groq API呼び出し・AI要約生成
-│   └── slack.ts               # Slack Incoming Webhook投稿
+│   ├── slack.ts               # Slack Incoming Webhook投稿
+│   └── __tests__/             # ユニットテスト（Jest）
+│       ├── filter.test.ts
+│       ├── urlStore.test.ts
+│       └── rss.test.ts
+├── scripts/
+│   ├── create-test-template.js  # 手動テスト記録Excelテンプレート生成
+│   ├── jest-to-excel.js         # Jest結果 → Excel変換
+│   └── run-test-report.js       # テスト実行 + Excel出力のランナー
 ├── posted_urls.json           # 投稿済みURL一覧（最大1,000件保持）
-├── package.json               # Node.jsパッケージ定義（依存関係は最小限）
+├── jest.config.js             # Jestテスト設定
+├── package.json               # Node.jsパッケージ定義
 ├── tsconfig.json              # TypeScriptコンパイル設定
 └── .env.example               # 環境変数サンプル（実際の値はGitHub Secretsで管理）
 ```
@@ -187,6 +197,7 @@ GitHub ActionsのCronはUTCで設定するため、JST（日本時間）から�
 | 実行時刻（JST） | 毎朝7:00 |
 | Cron式（UTC） | `0 22 * * *`（前日UTC 22:00 = JST 7:00） |
 | 手動実行 | `workflow_dispatch` により手動トリガーも可能 |
+| 自動実行の有効化 | GitHub Variables に `BOT_ENABLED=true` を設定する（未設定時はスケジュール実行しない） |
 
 ---
 
@@ -194,10 +205,10 @@ GitHub ActionsのCronはUTCで設定するため、JST（日本時間）から�
 
 1. Slackワークスペースでアプリを作成し、Incoming Webhook URLを取得する
 2. [console.groq.com](https://console.groq.com) でAPIキーを発行する
-3. GitHubリポジトリの **Settings > Secrets and variables** に `SLACK_WEBHOOK_URL` と `GROQ_API_KEY` を登録する
+3. GitHubリポジトリの **Settings > Secrets and variables > Secrets** に `SLACK_WEBHOOK_URL` と `GROQ_API_KEY` を登録する
 4. `posted_urls.json` を空の状態（`[]`）でリポジトリにコミットする
-5. GitHub Actionsワークフローを有効化し、手動実行で動作確認を行う
-6. 正常動作を確認後、Cronスケジュールによる自動実行を開始する
+5. GitHub Actionsワークフローを有効化し、手動実行（`workflow_dispatch`）で動作確認を行う
+6. 正常動作を確認後、**Settings > Secrets and variables > Variables** に `BOT_ENABLED=true` を登録してCronスケジュールによる自動実行を開始する
 
 ---
 
@@ -257,6 +268,7 @@ GitHub ActionsのCronはUTCで設定するため、JST（日本時間）から�
 - `node_modules/` は `.gitignore` に追加する
 
 ### テスト
-- ユニットテストを `__tests__/` または `*.test.js` に置く
-- テストフレームワークは `Jest` を使用する
-- テストカバレッジ 80% 以上を目標とする
+- ユニットテストを `src/__tests__/` に置く（`*.test.ts`）
+- テストフレームワークは `Jest`（`ts-jest`）を使用する
+- `npm test` でテスト実行、`npm run test:report` でExcel出力
+- テスト結果のExcelファイル（`jest-results.xlsx`・`test-results.xlsx`）はコミットしない

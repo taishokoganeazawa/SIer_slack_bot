@@ -6,6 +6,9 @@
 Cron スケジュール実行と、手動トリガー（`workflow_dispatch`）を設定する。
 GitHub Secrets から環境変数を渡し、TypeScript をビルドして実行する。
 
+スケジュール実行は GitHub Variables の `BOT_ENABLED=true` が設定されている場合のみ動作する。
+手動実行（`workflow_dispatch`）は常に動作する。
+
 ---
 
 ## スケジュール
@@ -16,6 +19,7 @@ GitHub Secrets から環境変数を渡し、TypeScript をビルドして実行
 | 実行時刻（JST） | 毎朝7:00 |
 | Cron式（UTC） | `0 22 * * *` |
 | 手動実行 | `workflow_dispatch` で可能 |
+| 自動実行の有効化 | GitHub Variables に `BOT_ENABLED=true` を設定 |
 
 ---
 
@@ -37,12 +41,15 @@ GitHub Secrets から環境変数を渡し、TypeScript をビルドして実行
   - 変更がある場合のみコミットする（差分チェック）
   - `git pull --rebase origin master` で競合を防ぐ
   - `GITHUB_TOKEN` を使ってプッシュする
+- [×] スケジュール実行を `BOT_ENABLED` 変数で制御する
+  - `if: github.event_name == 'workflow_dispatch' || vars.BOT_ENABLED == 'true'` をジョブに設定する
+  - 手動実行は常に動作、スケジュール実行は `BOT_ENABLED=true` のときのみ動作する
 
 ---
 
 ## 受け入れ条件
 
-- Cron スケジュールで毎朝自動実行される
-- `workflow_dispatch` で手動実行できる
+- Cron スケジュールで毎朝自動実行される（`BOT_ENABLED=true` のとき）
+- `workflow_dispatch` で手動実行できる（`BOT_ENABLED` の値に関わらず）
 - 実行後に `posted_urls.json` が自動でコミット・プッシュされる
 - GitHub Actions のログで各ステップの成否が確認できる

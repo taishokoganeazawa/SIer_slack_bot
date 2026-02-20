@@ -66,9 +66,21 @@ GitHub Actionsで動作するため、外部サーバーは不要です。
 | `SLACK_WEBHOOK_URL` | SlackのWebhook URL |
 | `GROQ_API_KEY` | GroqのAPIキー |
 
-### 4. GitHub Actionsを有効化
+### 4. 手動実行で動作確認
 
-リポジトリの **Actions** タブからワークフローを有効化すると、毎朝7:00（JST）に自動実行されます。
+Actions タブの「Run workflow」から手動実行し、Slackへの投稿を確認します。
+
+### 5. 毎朝の自動実行を有効化
+
+動作確認が取れたら、以下の変数を設定することで毎朝7:00（JST）の自動実行が始まります。
+
+**Settings > Secrets and variables > Actions > Variables タブ**
+
+| 変数名 | 値 |
+|---|---|
+| `BOT_ENABLED` | `true` |
+
+> 変数を削除または `false` にすると自動実行が止まります。
 
 ---
 
@@ -78,6 +90,7 @@ GitHub Actionsで動作するため、外部サーバーは不要です。
 |---|---|
 | 実行時刻 | 毎朝 7:00（日本時間） |
 | Cron式（UTC） | `0 22 * * *` |
+| 自動実行の有効化 | GitHub Variables に `BOT_ENABLED=true` を設定 |
 | 手動実行 | Actions タブの「Run workflow」から可能 |
 
 ---
@@ -93,12 +106,42 @@ GitHub Actionsで動作するため、外部サーバーは不要です。
 │   ├── filter.ts                   # キーワードスコアリング・関連度ソート
 │   ├── urlStore.ts                 # 投稿済みURL管理
 │   ├── summarizer.ts               # Groq API・AI要約生成
-│   └── slack.ts                    # Slack Webhook投稿
+│   ├── slack.ts                    # Slack Webhook投稿
+│   └── __tests__/                  # ユニットテスト
+│       ├── filter.test.ts
+│       ├── urlStore.test.ts
+│       └── rss.test.ts
+├── scripts/
+│   ├── create-test-template.js     # 手動テスト記録Excel生成
+│   ├── jest-to-excel.js            # Jest結果 → Excel変換
+│   └── run-test-report.js          # テスト実行 + Excel出力
 ├── posted_urls.json                # 投稿済みURL履歴
-├── .env.example                    # 環境変数サンプル
+├── jest.config.js                  # Jestテスト設定
 ├── package.json
-└── tsconfig.json
+├── tsconfig.json
+└── .env.example                    # 環境変数サンプル
 ```
+
+---
+
+## テスト
+
+```bash
+# ユニットテスト実行
+npm test
+
+# テスト実行 + 結果をExcel出力（jest-results.xlsx）
+npm run test:report
+
+# 手動テスト記録テンプレートを生成（test-results.xlsx）
+npm run test:template
+```
+
+| コマンド | 内容 |
+|---|---|
+| `npm test` | Jest で39件のユニットテストを実行 |
+| `npm run test:report` | テスト実行 → `jest-results.xlsx` を自動生成 |
+| `npm run test:template` | 手動テスト記録テンプレート `test-results.xlsx` を生成 |
 
 ---
 
@@ -112,6 +155,7 @@ GitHub Actionsで動作するため、外部サーバーは不要です。
 | Slack連携 | Incoming Webhook |
 | RSSパース | 正規表現による自前実装（外部ライブラリなし） |
 | HTTP通信 | Node.js標準モジュール（`https`/`http`） |
+| テスト | Jest + ts-jest |
 
 ---
 
@@ -130,6 +174,9 @@ npm run build
 
 # 実行
 npm start
+
+# テスト
+npm test
 ```
 
 ---
