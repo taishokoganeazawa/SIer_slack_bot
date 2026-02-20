@@ -1,10 +1,14 @@
 name: News Bot
 
 on:
-  workflow_dispatch:        # 手動実行のみ
+  schedule:
+    - cron: '0 22 * * *'  # 毎日 22:00 UTC（日本時間 翌7:00）
+  workflow_dispatch:        # 手動実行
 
 jobs:
   post-news:
+    # 手動実行は常に動く。スケジュール実行は BOT_ENABLED=true のときだけ動く
+    if: github.event_name == 'workflow_dispatch' || vars.BOT_ENABLED == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write  # posted_urls.json のコミット・プッシュに必要
